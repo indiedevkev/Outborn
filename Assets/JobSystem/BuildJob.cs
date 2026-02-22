@@ -37,11 +37,9 @@ void CreateConstructionSite()
     constructionSite.transform.position = workLocation;
     constructionSite.transform.rotation = buildingRotation;
     
-    // Create ghost building as child
+    // Create ghost building FIRST
     GameObject ghost = Object.Instantiate(buildingPrefab, constructionSite.transform);
     ghost.name = "Ghost";
-    
-    // ← FIX: Reset local position to center the ghost!
     ghost.transform.localPosition = Vector3.zero;
     ghost.transform.localRotation = Quaternion.identity;
     
@@ -78,7 +76,10 @@ void CreateConstructionSite()
         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
     textField?.SetValue(constructionScript, text);
     
-    Debug.Log($"Construction site created at {workLocation} with ghost centered!");
+    // ← NEU! Initialize mit 0%!
+    constructionScript.SetProgress(0f);
+    
+    Debug.Log($"Construction site created at {workLocation} with 0% progress!");
 }
 
 GameObject CreateProgressBar(Transform parent)

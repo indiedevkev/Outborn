@@ -9,28 +9,39 @@ public class ConstructionSite : MonoBehaviour
     [SerializeField] private Canvas progressCanvas;
     [SerializeField] private Image progressBarFill;
     [SerializeField] private TextMeshProUGUI progressText;
-
+    
     [Header("Settings")]
     [SerializeField] private Color constructionColor = new Color(1f, 1f, 1f, 0.3f);
     [SerializeField] private float minAlpha = 0.3f;
     [SerializeField] private float maxAlpha = 0.9f;
     [SerializeField] private Vector3 progressBarOffset = new Vector3(0, 3f, 0);
-
+    
+    [Header("Animation")]
+    [SerializeField] private float fillSpeed = 2f;  // ← NEU!
+    
     private Renderer[] ghostRenderers;
     private Material[] ghostMaterials;
     private float currentProgress = 0f;
+    private float displayedProgress = 0f;  // ← NEU!
     private Camera mainCamera;
 
-    void Start()
+void Start()
+{
+    mainCamera = Camera.main;
+    SetupGhostMaterials();
+    
+    if (progressCanvas != null)
     {
-        mainCamera = Camera.main;
-        SetupGhostMaterials();
-
-        if (progressCanvas != null)
-        {
-            progressCanvas.worldCamera = mainCamera;
-        }
+        progressCanvas.worldCamera = mainCamera;
     }
+    
+    // ← NEU! Start mit 0% Fill!
+    displayedProgress = 0f;
+    if (progressBarFill != null)
+    {
+        progressBarFill.fillAmount = 0f;
+    }
+}
 
     void Update()
     {
@@ -41,6 +52,13 @@ public class ConstructionSite : MonoBehaviour
                 progressCanvas.transform.position - mainCamera.transform.position
             );
         }
+        
+        // Smooth fill progress bar
+        if (progressBarFill != null)
+        {
+            displayedProgress = Mathf.Lerp(displayedProgress, currentProgress, Time.deltaTime * fillSpeed);
+            progressBarFill.fillAmount = displayedProgress;
+        }
     }
 
     void SetupGhostMaterials()
@@ -50,25 +68,25 @@ public class ConstructionSite : MonoBehaviour
             Debug.LogWarning("Ghost building is null!");
             return;
         }
-
+        
         ghostRenderers = ghostBuilding.GetComponentsInChildren<Renderer>();
-
+        
         if (ghostRenderers.Length == 0)
         {
             Debug.LogWarning("No renderers found on ghost building!");
             return;
         }
-
+        
         ghostMaterials = new Material[ghostRenderers.Length];
-
+        
         for (int i = 0; i < ghostRenderers.Length; i++)
         {
             // Get original material or create new one
             Material originalMat = ghostRenderers[i].sharedMaterial;
-
+            
             // Create a copy with transparency
             Material ghostMat = new Material(originalMat);
-
+            
             // Try to enable transparency (works with Standard and URP Lit)
             if (ghostMat.HasProperty("_Mode"))
             {
@@ -94,11 +112,11 @@ public class ConstructionSite : MonoBehaviour
                 ghostMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
                 ghostMat.EnableKeyword("_ALPHAPREMULTIPLY_ON");
             }
-
+            
             // Set initial color with transparency
             Color color = constructionColor;
             color.a = minAlpha;
-
+            
             if (ghostMat.HasProperty("_Color"))
             {
                 ghostMat.SetColor("_Color", color);
@@ -107,10 +125,10 @@ public class ConstructionSite : MonoBehaviour
             {
                 ghostMat.SetColor("_BaseColor", color);
             }
-
+            
             ghostRenderers[i].material = ghostMat;
             ghostMaterials[i] = ghostMat;
-
+            
             Debug.Log($"Setup ghost material for {ghostRenderers[i].name}");
         }
     }
@@ -118,17 +136,13 @@ public class ConstructionSite : MonoBehaviour
     public void SetProgress(float progress)
     {
         currentProgress = Mathf.Clamp01(progress);
-
+        
         // Update ghost transparency (more solid as it builds)
         float alpha = Mathf.Lerp(minAlpha, maxAlpha, currentProgress);
         UpdateGhostAlpha(alpha);
-
-        // Update progress bar
-        if (progressBarFill != null)
-        {
-            progressBarFill.fillAmount = currentProgress;
-        }
-
+        
+        // Progress bar fills smoothly in Update()
+        
         // Update progress text
         if (progressText != null)
         {
