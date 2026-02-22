@@ -6,16 +6,16 @@ public class BuildingPlacer : MonoBehaviour
     [Header("References")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private GameObject[] buildingPrefabs;
-    
+
     [Header("Settings")]
     [SerializeField] private Material previewMaterial;
     [SerializeField] private Color validPlacementColor = new Color(0f, 1f, 0f, 0.5f);
     [SerializeField] private Color invalidPlacementColor = new Color(1f, 0f, 0f, 0.5f);
     [SerializeField] private float buildTime = 5f;  // ← NEU!
-    
+
     [Header("Input")]
     [SerializeField] private bool buildMode = false;
-    
+
     private GameObject currentPreview;
     private GameObject currentBuildingPrefab;
     private int currentBuildingIndex = 0;
@@ -84,7 +84,7 @@ public class BuildingPlacer : MonoBehaviour
 
         Vector3Int cellPos = gridManager.GetCurrentHoverCell();
         Vector3 worldPos = gridManager.CellToWorld(cellPos);
-        
+
         currentPreview.transform.position = worldPos;
 
         // Check if placement is valid
@@ -108,34 +108,35 @@ public class BuildingPlacer : MonoBehaviour
         }
     }
 
-    void PlaceBuilding()  // ← KOMPLETT NEU!
+    void PlaceBuilding()
     {
         Vector3Int cellPos = gridManager.GetCurrentHoverCell();
-        
+
         if (!gridManager.IsValidCell(cellPos) || gridManager.IsCellOccupied(cellPos))
         {
             Debug.LogWarning("Cannot place building here!");
             return;
         }
 
-        // CREATE BUILD JOB instead of instant building!
+        // CREATE BUILD JOB with rotation!
         if (JobManager.Instance != null)
         {
             BuildJob buildJob = new BuildJob(
-                currentPreview.transform.position,  // Use preview position (includes rotation!)
+                currentPreview.transform.position,
                 cellPos,
                 currentBuildingPrefab,
+                currentPreview.transform.rotation,  // ← Save rotation!
                 buildTime
             );
-            
+
             JobManager.Instance.AddJob(buildJob);
             gridManager.SetCellOccupied(cellPos, true);
-            
+
             Debug.Log($"Build job created for {currentBuildingPrefab.name} at {cellPos}");
         }
         else
         {
-            Debug.LogError("JobManager not found! Create JobManager GameObject in scene.");
+            Debug.LogError("JobManager not found!");
         }
     }
 
@@ -144,7 +145,7 @@ public class BuildingPlacer : MonoBehaviour
         if (buildingPrefabs == null || buildingPrefabs.Length == 0) return;
 
         currentBuildingIndex += direction;
-        
+
         if (currentBuildingIndex >= buildingPrefabs.Length)
             currentBuildingIndex = 0;
         else if (currentBuildingIndex < 0)
@@ -216,7 +217,7 @@ public class BuildingPlacer : MonoBehaviour
     public void CancelBuildMode()
     {
         buildMode = false;
-        
+
         if (currentPreview != null)
         {
             Destroy(currentPreview);
