@@ -17,49 +17,69 @@ public class ConstructionSite : MonoBehaviour
     [SerializeField] private Vector3 progressBarOffset = new Vector3(0, 3f, 0);
     
     [Header("Animation")]
-    [SerializeField] private float fillSpeed = 2f;  // ← NEU!
+   [SerializeField] private float buildTime = 5f;  // ← Match with BuildJob!
+
     
     private Renderer[] ghostRenderers;
     private Material[] ghostMaterials;
     private float currentProgress = 0f;
-    private float displayedProgress = 0f;  // ← NEU!
+    private float displayedProgress = 0f;
     private Camera mainCamera;
 
-void Start()
-{
-    mainCamera = Camera.main;
-    SetupGhostMaterials();
-    
-    if (progressCanvas != null)
+    // ← NEU! Public Setup Methode!
+    public void Setup(GameObject ghost, Canvas canvas, Image fill, TextMeshProUGUI text)
     {
-        progressCanvas.worldCamera = mainCamera;
-    }
-    
-    // ← NEU! Start mit 0% Fill!
-    displayedProgress = 0f;
-    if (progressBarFill != null)
-    {
-        progressBarFill.fillAmount = 0f;
-    }
-}
-
-    void Update()
-    {
-        // Progress bar always faces camera
-        if (progressCanvas != null && mainCamera != null)
+        ghostBuilding = ghost;
+        progressCanvas = canvas;
+        progressBarFill = fill;
+        progressText = text;
+        
+        mainCamera = Camera.main;
+        
+        if (progressCanvas != null)
         {
-            progressCanvas.transform.rotation = Quaternion.LookRotation(
-                progressCanvas.transform.position - mainCamera.transform.position
-            );
+            progressCanvas.worldCamera = mainCamera;
         }
         
-        // Smooth fill progress bar
+        // Initialize fill to 0
+        displayedProgress = 0f;
         if (progressBarFill != null)
         {
-            displayedProgress = Mathf.Lerp(displayedProgress, currentProgress, Time.deltaTime * fillSpeed);
+            progressBarFill.fillAmount = 0f;
+        }
+        
+        SetupGhostMaterials();
+        SetProgress(0f);
+        
+        Debug.Log("ConstructionSite Setup complete!");
+    }
+
+void Update()
+{
+    // Progress bar always faces camera
+    if (progressCanvas != null && mainCamera != null)
+    {
+        progressCanvas.transform.rotation = Quaternion.LookRotation(
+            progressCanvas.transform.position - mainCamera.transform.position
+        );
+    }
+    
+    // Smooth fill
+    if (progressBarFill != null)
+    {
+        // Linear fill based on build time
+        if (displayedProgress < currentProgress)
+        {
+            float fillRate = 1f / 5f;  // 5 seconds to fill
+            displayedProgress += Time.deltaTime * fillRate;
+            displayedProgress = Mathf.Min(displayedProgress, currentProgress);
             progressBarFill.fillAmount = displayedProgress;
+            
+            // DEBUG - entferne das nach Test!
+            Debug.Log($"Fill: {displayedProgress:F2} / {currentProgress:F2} | fillAmount: {progressBarFill.fillAmount:F2}");
         }
     }
+}
 
     void SetupGhostMaterials()
     {
@@ -81,17 +101,13 @@ void Start()
         
         for (int i = 0; i < ghostRenderers.Length; i++)
         {
-            // Get original material or create new one
             Material originalMat = ghostRenderers[i].sharedMaterial;
-            
-            // Create a copy with transparency
             Material ghostMat = new Material(originalMat);
             
-            // Try to enable transparency (works with Standard and URP Lit)
+            // Try to enable transparency
             if (ghostMat.HasProperty("_Mode"))
             {
-                // Standard shader
-                ghostMat.SetFloat("_Mode", 3); // Transparent mode
+                ghostMat.SetFloat("_Mode", 3);
                 ghostMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                 ghostMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
                 ghostMat.SetInt("_ZWrite", 0);
@@ -102,9 +118,8 @@ void Start()
             }
             else if (ghostMat.HasProperty("_Surface"))
             {
-                // URP Lit shader
-                ghostMat.SetFloat("_Surface", 1); // Transparent
-                ghostMat.SetFloat("_Blend", 0); // Alpha
+                ghostMat.SetFloat("_Surface", 1);
+                ghostMat.SetFloat("_Blend", 0);
                 ghostMat.SetFloat("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                 ghostMat.SetFloat("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
                 ghostMat.SetFloat("_ZWrite", 0);
@@ -113,7 +128,6 @@ void Start()
                 ghostMat.EnableKeyword("_ALPHAPREMULTIPLY_ON");
             }
             
-            // Set initial color with transparency
             Color color = constructionColor;
             color.a = minAlpha;
             
@@ -128,8 +142,6 @@ void Start()
             
             ghostRenderers[i].material = ghostMat;
             ghostMaterials[i] = ghostMat;
-            
-            Debug.Log($"Setup ghost material for {ghostRenderers[i].name}");
         }
     }
 
@@ -137,13 +149,9 @@ void Start()
     {
         currentProgress = Mathf.Clamp01(progress);
         
-        // Update ghost transparency (more solid as it builds)
         float alpha = Mathf.Lerp(minAlpha, maxAlpha, currentProgress);
         UpdateGhostAlpha(alpha);
         
-        // Progress bar fills smoothly in Update()
-        
-        // Update progress text
         if (progressText != null)
         {
             progressText.text = $"{Mathf.RoundToInt(currentProgress * 100)}%";
@@ -152,6 +160,8 @@ void Start()
 
     void UpdateGhostAlpha(float alpha)
     {
+        if (ghostMaterials == null) return;
+        
         foreach (Material mat in ghostMaterials)
         {
             if (mat != null)
@@ -165,8 +175,6 @@ void Start()
 
     public void CompleteBuild()
     {
-        // Spawn real building (handled by BuildJob)
-        // Destroy this construction site
         Destroy(gameObject);
     }
 }

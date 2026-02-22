@@ -32,16 +32,22 @@ void CreateConstructionSite()
 {
     if (buildingPrefab == null) return;
     
+    Debug.Log("=== START CreateConstructionSite ===");
+    
     // Create construction site parent
     constructionSite = new GameObject("ConstructionSite");
     constructionSite.transform.position = workLocation;
     constructionSite.transform.rotation = buildingRotation;
     
-    // Create ghost building FIRST
+    Debug.Log("✓ ConstructionSite GameObject created");
+    
+    // Create ghost building
     GameObject ghost = Object.Instantiate(buildingPrefab, constructionSite.transform);
     ghost.name = "Ghost";
     ghost.transform.localPosition = Vector3.zero;
     ghost.transform.localRotation = Quaternion.identity;
+    
+    Debug.Log($"✓ Ghost created: {ghost.name}");
     
     // Remove colliders from ghost
     Collider[] colliders = ghost.GetComponentsInChildren<Collider>();
@@ -50,36 +56,43 @@ void CreateConstructionSite()
         Object.Destroy(col);
     }
     
+    Debug.Log($"✓ Removed {colliders.Length} colliders from ghost");
+    
     // Create progress bar UI
     GameObject progressBar = CreateProgressBar(constructionSite.transform);
+    Debug.Log($"✓ Progress bar created: {progressBar.name}");
+    
     Canvas canvas = progressBar.GetComponent<Canvas>();
-    Image fillImage = progressBar.transform.Find("Background/Fill").GetComponent<Image>();
-    TextMeshProUGUI text = progressBar.transform.Find("Text").GetComponent<TextMeshProUGUI>();
+    Debug.Log($"✓ Canvas: {(canvas != null ? "Found" : "NULL!")}");
     
-    // NOW add ConstructionSite script and set references!
+    Transform fillTransform = progressBar.transform.Find("Background/Fill");
+    Debug.Log($"✓ Fill Transform: {(fillTransform != null ? "Found" : "NULL!")}");
+    
+    Image fillImage = fillTransform?.GetComponent<Image>();
+    Debug.Log($"✓ Fill Image: {(fillImage != null ? $"Found (type={fillImage.type}, fillAmount={fillImage.fillAmount})" : "NULL!")}");
+    
+    Transform textTransform = progressBar.transform.Find("Text");
+    Debug.Log($"✓ Text Transform: {(textTransform != null ? "Found" : "NULL!")}");
+    
+    TextMeshProUGUI text = textTransform?.GetComponent<TextMeshProUGUI>();
+    Debug.Log($"✓ Text Component: {(text != null ? $"Found (text='{text.text}')" : "NULL!")}");
+    
+    // Add ConstructionSite script
     constructionScript = constructionSite.AddComponent<ConstructionSite>();
+    Debug.Log("✓ ConstructionSite script added");
     
-    // Use reflection to set private fields
-    var ghostField = typeof(ConstructionSite).GetField("ghostBuilding", 
-        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-    ghostField?.SetValue(constructionScript, ghost);
+    // Call Setup
+    if (constructionScript != null && fillImage != null && text != null)
+    {
+        constructionScript.Setup(ghost, canvas, fillImage, text);
+        Debug.Log("✓ Setup() called successfully!");
+    }
+    else
+    {
+        Debug.LogError($"❌ Setup FAILED! Script={constructionScript != null}, Fill={fillImage != null}, Text={text != null}");
+    }
     
-    var canvasField = typeof(ConstructionSite).GetField("progressCanvas", 
-        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-    canvasField?.SetValue(constructionScript, canvas);
-    
-    var fillField = typeof(ConstructionSite).GetField("progressBarFill", 
-        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-    fillField?.SetValue(constructionScript, fillImage);
-    
-    var textField = typeof(ConstructionSite).GetField("progressText", 
-        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-    textField?.SetValue(constructionScript, text);
-    
-    // ← NEU! Initialize mit 0%!
-    constructionScript.SetProgress(0f);
-    
-    Debug.Log($"Construction site created at {workLocation} with 0% progress!");
+    Debug.Log("=== END CreateConstructionSite ===");
 }
 
 GameObject CreateProgressBar(Transform parent)
@@ -89,7 +102,7 @@ GameObject CreateProgressBar(Transform parent)
     canvasObj.transform.SetParent(parent);
     canvasObj.transform.localPosition = Vector3.up * 3f;
     canvasObj.transform.localRotation = Quaternion.identity;
-    canvasObj.transform.localScale = Vector3.one * 0.01f;  // ← WICHTIG! Viel kleiner!
+    canvasObj.transform.localScale = Vector3.one * 0.01f;
     
     Canvas canvas = canvasObj.AddComponent<Canvas>();
     canvas.renderMode = RenderMode.WorldSpace;
@@ -114,22 +127,24 @@ GameObject CreateProgressBar(Transform parent)
     bgRect.sizeDelta = new Vector2(180, 30);
     bgRect.anchoredPosition = Vector2.zero;
     
-    // Fill
+    // Fill - ← WICHTIG! Hier ist der Fix!
     GameObject fillObj = new GameObject("Fill");
     fillObj.transform.SetParent(bgObj.transform, false);
     
     Image fillImage = fillObj.AddComponent<Image>();
     fillImage.color = new Color(0.2f, 0.8f, 0.2f, 1f);
+    
+    // ← KRITISCH! In der richtigen Reihenfolge setzen!
     fillImage.type = Image.Type.Filled;
     fillImage.fillMethod = Image.FillMethod.Horizontal;
-    fillImage.fillOrigin = 0; // Left to right
-    fillImage.fillAmount = 0f;
+    fillImage.fillOrigin = (int)Image.OriginHorizontal.Left;  // ← Von links nach rechts!
+    fillImage.fillAmount = 0f;  // ← Start bei 0!
     
     RectTransform fillRect = fillObj.GetComponent<RectTransform>();
-    fillRect.anchorMin = new Vector2(0.5f, 0.5f);
-    fillRect.anchorMax = new Vector2(0.5f, 0.5f);
+    fillRect.anchorMin = Vector2.zero;  // ← WICHTIG! Links unten
+    fillRect.anchorMax = Vector2.one;   // ← WICHTIG! Rechts oben (fill parent!)
     fillRect.pivot = new Vector2(0.5f, 0.5f);
-    fillRect.sizeDelta = new Vector2(170, 20);
+    fillRect.sizeDelta = Vector2.zero;  // ← Full size of parent!
     fillRect.anchoredPosition = Vector2.zero;
     
     // Text
@@ -150,7 +165,7 @@ GameObject CreateProgressBar(Transform parent)
     textRect.sizeDelta = new Vector2(180, 30);
     textRect.anchoredPosition = Vector2.zero;
     
-    Debug.Log($"Progress bar created at {canvasObj.transform.position}");
+    Debug.Log($"Progress bar created with Fill type: {fillImage.type}, fillAmount: {fillImage.fillAmount}");
     
     return canvasObj;
 }
