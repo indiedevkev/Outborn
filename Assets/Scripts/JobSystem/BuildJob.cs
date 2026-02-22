@@ -1,12 +1,12 @@
 using UnityEngine;
-using UnityEngine.UI;  // ← NEU!
-using TMPro;           // ← NEU!
+using UnityEngine.UI;
+using TMPro;
 
 public class BuildJob : Job
 {
     public GameObject buildingPrefab;
     public Vector3Int gridPosition;
-    public Quaternion buildingRotation;  // ← NEU: Rotation speichern!
+    public Quaternion buildingRotation;
     
     private GameObject constructionSite;
     private ConstructionSite constructionScript;
@@ -16,84 +16,93 @@ public class BuildJob : Job
     {
         buildingPrefab = prefab;
         gridPosition = gridPos;
-        buildingRotation = rotation;  // ← NEU!
+        buildingRotation = rotation;
         priority = JobPriority.Normal;
+    }
+
+    // ← NEU! Create construction site IMMEDIATELY when assigned!
+    public override bool AssignTo(Pawn pawn)
+    {
+        if (!base.AssignTo(pawn)) return false;
+        
+        // Create construction site RIGHT NOW!
+        CreateConstructionSite();
+        
+        return true;
     }
 
     public override void StartJob()
     {
         base.StartJob();
-        
-        // Create construction site visual
-        CreateConstructionSite();
+        // Construction site already created in AssignTo()!
     }
 
-void CreateConstructionSite()
-{
-    if (buildingPrefab == null) return;
-    
-    Debug.Log("=== START CreateConstructionSite ===");
-    
-    // Create construction site parent
-    constructionSite = new GameObject("ConstructionSite");
-    constructionSite.transform.position = workLocation;
-    constructionSite.transform.rotation = buildingRotation;
-    
-    Debug.Log("✓ ConstructionSite GameObject created");
-    
-    // Create ghost building
-    GameObject ghost = Object.Instantiate(buildingPrefab, constructionSite.transform);
-    ghost.name = "Ghost";
-    ghost.transform.localPosition = Vector3.zero;
-    ghost.transform.localRotation = Quaternion.identity;
-    
-    Debug.Log($"✓ Ghost created: {ghost.name}");
-    
-    // Remove colliders from ghost
-    Collider[] colliders = ghost.GetComponentsInChildren<Collider>();
-    foreach (Collider col in colliders)
+    void CreateConstructionSite()
     {
-        Object.Destroy(col);
+        if (buildingPrefab == null) return;
+        
+        Debug.Log("=== START CreateConstructionSite ===");
+        
+        // Create construction site parent
+        constructionSite = new GameObject("ConstructionSite");
+        constructionSite.transform.position = workLocation;
+        constructionSite.transform.rotation = buildingRotation;
+        
+        Debug.Log("✓ ConstructionSite GameObject created");
+        
+        // Create ghost building
+        GameObject ghost = Object.Instantiate(buildingPrefab, constructionSite.transform);
+        ghost.name = "Ghost";
+        ghost.transform.localPosition = Vector3.zero;
+        ghost.transform.localRotation = Quaternion.identity;
+        
+        Debug.Log($"✓ Ghost created: {ghost.name}");
+        
+        // Remove colliders from ghost
+        Collider[] colliders = ghost.GetComponentsInChildren<Collider>();
+        foreach (Collider col in colliders)
+        {
+            Object.Destroy(col);
+        }
+        
+        Debug.Log($"✓ Removed {colliders.Length} colliders from ghost");
+        
+        // Create progress bar UI
+        GameObject progressBar = CreateProgressBar(constructionSite.transform);
+        Debug.Log($"✓ Progress bar created: {progressBar.name}");
+        
+        Canvas canvas = progressBar.GetComponent<Canvas>();
+        Debug.Log($"✓ Canvas: {(canvas != null ? "Found" : "NULL!")}");
+        
+        Transform fillTransform = progressBar.transform.Find("Background/Fill");
+        Debug.Log($"✓ Fill Transform: {(fillTransform != null ? "Found" : "NULL!")}");
+        
+        Image fillImage = fillTransform?.GetComponent<Image>();
+        Debug.Log($"✓ Fill Image: {(fillImage != null ? $"Found (type={fillImage.type}, fillAmount={fillImage.fillAmount})" : "NULL!")}");
+        
+        Transform textTransform = progressBar.transform.Find("Text");
+        Debug.Log($"✓ Text Transform: {(textTransform != null ? "Found" : "NULL!")}");
+        
+        TextMeshProUGUI text = textTransform?.GetComponent<TextMeshProUGUI>();
+        Debug.Log($"✓ Text Component: {(text != null ? $"Found (text='{text.text}')" : "NULL!")}");
+        
+        // Add ConstructionSite script
+        constructionScript = constructionSite.AddComponent<ConstructionSite>();
+        Debug.Log("✓ ConstructionSite script added");
+        
+        // Call Setup
+        if (constructionScript != null && fillImage != null && text != null)
+        {
+            constructionScript.Setup(ghost, canvas, fillImage, text);
+            Debug.Log("✓ Setup() called successfully!");
+        }
+        else
+        {
+            Debug.LogError($"❌ Setup FAILED! Script={constructionScript != null}, Fill={fillImage != null}, Text={text != null}");
+        }
+        
+        Debug.Log("=== END CreateConstructionSite ===");
     }
-    
-    Debug.Log($"✓ Removed {colliders.Length} colliders from ghost");
-    
-    // Create progress bar UI
-    GameObject progressBar = CreateProgressBar(constructionSite.transform);
-    Debug.Log($"✓ Progress bar created: {progressBar.name}");
-    
-    Canvas canvas = progressBar.GetComponent<Canvas>();
-    Debug.Log($"✓ Canvas: {(canvas != null ? "Found" : "NULL!")}");
-    
-    Transform fillTransform = progressBar.transform.Find("Background/Fill");
-    Debug.Log($"✓ Fill Transform: {(fillTransform != null ? "Found" : "NULL!")}");
-    
-    Image fillImage = fillTransform?.GetComponent<Image>();
-    Debug.Log($"✓ Fill Image: {(fillImage != null ? $"Found (type={fillImage.type}, fillAmount={fillImage.fillAmount})" : "NULL!")}");
-    
-    Transform textTransform = progressBar.transform.Find("Text");
-    Debug.Log($"✓ Text Transform: {(textTransform != null ? "Found" : "NULL!")}");
-    
-    TextMeshProUGUI text = textTransform?.GetComponent<TextMeshProUGUI>();
-    Debug.Log($"✓ Text Component: {(text != null ? $"Found (text='{text.text}')" : "NULL!")}");
-    
-    // Add ConstructionSite script
-    constructionScript = constructionSite.AddComponent<ConstructionSite>();
-    Debug.Log("✓ ConstructionSite script added");
-    
-    // Call Setup
-    if (constructionScript != null && fillImage != null && text != null)
-    {
-        constructionScript.Setup(ghost, canvas, fillImage, text);
-        Debug.Log("✓ Setup() called successfully!");
-    }
-    else
-    {
-        Debug.LogError($"❌ Setup FAILED! Script={constructionScript != null}, Fill={fillImage != null}, Text={text != null}");
-    }
-    
-    Debug.Log("=== END CreateConstructionSite ===");
-}
 
 GameObject CreateProgressBar(Transform parent)
 {
@@ -127,24 +136,19 @@ GameObject CreateProgressBar(Transform parent)
     bgRect.sizeDelta = new Vector2(180, 30);
     bgRect.anchoredPosition = Vector2.zero;
     
-    // Fill - ← WICHTIG! Hier ist der Fix!
+    // Fill - ← NEUE METHODE: Simple Image mit Size!
     GameObject fillObj = new GameObject("Fill");
     fillObj.transform.SetParent(bgObj.transform, false);
     
     Image fillImage = fillObj.AddComponent<Image>();
     fillImage.color = new Color(0.2f, 0.8f, 0.2f, 1f);
-    
-    // ← KRITISCH! In der richtigen Reihenfolge setzen!
-    fillImage.type = Image.Type.Filled;
-    fillImage.fillMethod = Image.FillMethod.Horizontal;
-    fillImage.fillOrigin = (int)Image.OriginHorizontal.Left;  // ← Von links nach rechts!
-    fillImage.fillAmount = 0f;  // ← Start bei 0!
+    fillImage.type = Image.Type.Simple;  // ← Simple statt Filled!
     
     RectTransform fillRect = fillObj.GetComponent<RectTransform>();
-    fillRect.anchorMin = Vector2.zero;  // ← WICHTIG! Links unten
-    fillRect.anchorMax = Vector2.one;   // ← WICHTIG! Rechts oben (fill parent!)
-    fillRect.pivot = new Vector2(0.5f, 0.5f);
-    fillRect.sizeDelta = Vector2.zero;  // ← Full size of parent!
+    fillRect.anchorMin = new Vector2(0f, 0.5f);  // ← Links-zentriert!
+    fillRect.anchorMax = new Vector2(0f, 0.5f);  // ← Links-zentriert!
+    fillRect.pivot = new Vector2(0f, 0.5f);      // ← Pivot links!
+    fillRect.sizeDelta = new Vector2(0f, 20f);   // ← Start mit 0 width!
     fillRect.anchoredPosition = Vector2.zero;
     
     // Text
@@ -165,7 +169,7 @@ GameObject CreateProgressBar(Transform parent)
     textRect.sizeDelta = new Vector2(180, 30);
     textRect.anchoredPosition = Vector2.zero;
     
-    Debug.Log($"Progress bar created with Fill type: {fillImage.type}, fillAmount: {fillImage.fillAmount}");
+    Debug.Log($"Progress bar created with Simple type, width: 0");
     
     return canvasObj;
 }
@@ -188,7 +192,7 @@ GameObject CreateProgressBar(Transform parent)
         // Spawn actual building
         if (buildingPrefab != null)
         {
-            GameObject building = Object.Instantiate(buildingPrefab, workLocation, buildingRotation);  // ← Use rotation!
+            GameObject building = Object.Instantiate(buildingPrefab, workLocation, buildingRotation);
             Debug.Log($"Building constructed at {workLocation}");
         }
         

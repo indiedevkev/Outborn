@@ -17,16 +17,16 @@ public class ConstructionSite : MonoBehaviour
     [SerializeField] private Vector3 progressBarOffset = new Vector3(0, 3f, 0);
     
     [Header("Animation")]
-   [SerializeField] private float buildTime = 5f;  // ← Match with BuildJob!
-
+    [SerializeField] private float buildTime = 5f;
     
     private Renderer[] ghostRenderers;
     private Material[] ghostMaterials;
     private float currentProgress = 0f;
     private float displayedProgress = 0f;
     private Camera mainCamera;
+    private RectTransform fillRectTransform;  // ← NEU!
+    private float maxFillWidth = 170f;  // ← NEU! Max width of fill bar
 
-    // ← NEU! Public Setup Methode!
     public void Setup(GameObject ghost, Canvas canvas, Image fill, TextMeshProUGUI text)
     {
         ghostBuilding = ghost;
@@ -41,12 +41,16 @@ public class ConstructionSite : MonoBehaviour
             progressCanvas.worldCamera = mainCamera;
         }
         
-        // Initialize fill to 0
-        displayedProgress = 0f;
+        // Get RectTransform of fill
         if (progressBarFill != null)
         {
-            progressBarFill.fillAmount = 0f;
+            fillRectTransform = progressBarFill.GetComponent<RectTransform>();
+            maxFillWidth = 170f;  // Same as background width - 10px padding
         }
+        
+        // Initialize fill to 0
+        displayedProgress = 0f;
+        SetFillWidth(0f);
         
         SetupGhostMaterials();
         SetProgress(0f);
@@ -54,32 +58,37 @@ public class ConstructionSite : MonoBehaviour
         Debug.Log("ConstructionSite Setup complete!");
     }
 
-void Update()
-{
-    // Progress bar always faces camera
-    if (progressCanvas != null && mainCamera != null)
+    void Update()
     {
-        progressCanvas.transform.rotation = Quaternion.LookRotation(
-            progressCanvas.transform.position - mainCamera.transform.position
-        );
-    }
-    
-    // Smooth fill
-    if (progressBarFill != null)
-    {
-        // Linear fill based on build time
+        // Progress bar always faces camera
+        if (progressCanvas != null && mainCamera != null)
+        {
+            progressCanvas.transform.rotation = Quaternion.LookRotation(
+                progressCanvas.transform.position - mainCamera.transform.position
+            );
+        }
+        
+        // Smooth fill based on build time
         if (displayedProgress < currentProgress)
         {
-            float fillRate = 1f / 5f;  // 5 seconds to fill
+            // Fill exactly matching build time
+            float fillRate = 1f / buildTime;
             displayedProgress += Time.deltaTime * fillRate;
             displayedProgress = Mathf.Min(displayedProgress, currentProgress);
-            progressBarFill.fillAmount = displayedProgress;
             
-            // DEBUG - entferne das nach Test!
-            Debug.Log($"Fill: {displayedProgress:F2} / {currentProgress:F2} | fillAmount: {progressBarFill.fillAmount:F2}");
+            // Update fill width
+            SetFillWidth(displayedProgress);
         }
     }
-}
+
+    void SetFillWidth(float progress)
+    {
+        if (fillRectTransform != null)
+        {
+            float width = maxFillWidth * progress;
+            fillRectTransform.sizeDelta = new Vector2(width, 20f);
+        }
+    }
 
     void SetupGhostMaterials()
     {
