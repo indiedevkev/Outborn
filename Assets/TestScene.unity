@@ -547,14 +547,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56b74339dee83a942a8512cd9b2e96e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RTSCameraControllerV2
-  moveSpeed: 50
+  moveSpeed: 45
   fastMoveMultiplier: 2
   edgeScrollSize: 20
   useEdgeScrolling: 0
   zoomSpeed: 5
   minZoom: 3
   maxZoom: 30
-  zoomSmoothTime: 0.1
+  zoomSmoothTime: 0.3
   mouseRotationSpeed: 200
   mousePitchSpeed: 100
   minPitch: 10
@@ -839,6 +839,8 @@ GameObject:
   - component: {fileID: 535463101}
   - component: {fileID: 535463100}
   - component: {fileID: 535463102}
+  - component: {fileID: 535463103}
+  - component: {fileID: 535463104}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -892,6 +894,40 @@ MonoBehaviour:
   selectionManager: {fileID: 624226636}
   damageAmount: 20
   healAmount: 15
+--- !u!114 &535463103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 535463099}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65620d99020fbf544a7e19f19b46a5f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryUI
+  panelRoot: {fileID: 0}
+  contentText: {fileID: 0}
+  panelWidth: 220
+  panelHeight: 160
+  padding: 12
+  fontSize: 14
+--- !u!114 &535463104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 535463099}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85d64b070ac24d14bb2fd71ded014fb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Outborn.Inventory.ColonyInventory
+  startWood: 50
+  startStone: 30
+  startSteel: 0
+  startFood: 20
 --- !u!1 &624226634
 GameObject:
   m_ObjectHideFlags: 0
@@ -1617,7 +1653,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 5, y: 1, z: 5}
+  m_LocalScale: {x: 10, y: 1, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
