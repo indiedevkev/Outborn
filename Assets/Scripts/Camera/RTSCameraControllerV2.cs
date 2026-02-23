@@ -136,15 +136,17 @@ public class RTSCameraControllerV2 : MonoBehaviour
             currentSpeed *= fastMoveMultiplier;
         }
         
-        targetPosition += moveDirection.normalized * currentSpeed * Time.deltaTime;
-        
+        // unscaledDeltaTime: Kamera immer gleich schnell, unabhängig von Pause/Zeitskala
+        float dt = Time.unscaledDeltaTime;
+        targetPosition += moveDirection.normalized * currentSpeed * dt;
+
         if (useBoundaries)
         {
             targetPosition.x = Mathf.Clamp(targetPosition.x, minBounds.x, maxBounds.x);
             targetPosition.z = Mathf.Clamp(targetPosition.z, minBounds.y, maxBounds.y);
         }
-        
-        transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 10f);
+
+        transform.position = Vector3.Lerp(transform.position, targetPosition, dt * 10f);
     }
 
     void HandleMouseRotation()
@@ -153,12 +155,10 @@ public class RTSCameraControllerV2 : MonoBehaviour
         
         Vector2 currentMousePosition = Mouse.current.position.ReadValue();
         Vector2 mouseDelta = currentMousePosition - lastMousePosition;
-        
-        // Update yaw (horizontal rotation)
-        currentYaw += mouseDelta.x * mouseRotationSpeed * Time.deltaTime;
-        
-        // Update pitch (vertical angle)
-        currentPitch -= mouseDelta.y * mousePitchSpeed * Time.deltaTime;
+
+        float dt = Time.unscaledDeltaTime;
+        currentYaw += mouseDelta.x * mouseRotationSpeed * dt;
+        currentPitch -= mouseDelta.y * mousePitchSpeed * dt;
         currentPitch = Mathf.Clamp(currentPitch, minPitch, maxPitch);
         
         UpdateCameraRotation();
@@ -170,7 +170,7 @@ public class RTSCameraControllerV2 : MonoBehaviour
     {
         if (Mathf.Abs(keyboardRotateInput) > 0.01f)
         {
-            currentYaw += keyboardRotateInput * keyboardRotationSpeed * Time.deltaTime;
+            currentYaw += keyboardRotateInput * keyboardRotationSpeed * Time.unscaledDeltaTime;
             UpdateCameraRotation();
         }
     }
@@ -186,8 +186,8 @@ public class RTSCameraControllerV2 : MonoBehaviour
 
     void HandleZoom()
     {
-        // Smooth zoom
-        currentZoom = Mathf.SmoothDamp(currentZoom, targetZoom, ref zoomVelocity, zoomSmoothTime);
+        // Smooth zoom mit unscaledDeltaTime, damit bei Pause/Zeitskala Zoom normal reagiert
+        currentZoom = Mathf.SmoothDamp(currentZoom, targetZoom, ref zoomVelocity, zoomSmoothTime, Mathf.Infinity, Time.unscaledDeltaTime);
         UpdateCameraPosition();
     }
 

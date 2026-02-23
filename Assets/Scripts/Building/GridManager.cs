@@ -151,6 +151,10 @@ public class GridManager : MonoBehaviour
         return currentHoverCell;
     }
 
+    public int GridWidth => gridWidth;
+    public int GridHeight => gridHeight;
+    public float CellSize => cellSize;
+
     // Visualize grid in Scene view
     void OnDrawGizmos()
     {

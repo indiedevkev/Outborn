@@ -3,13 +3,21 @@ using UnityEngine;
 public class BuildingTest : MonoBehaviour
 {
     [SerializeField] private BuildingPlacer buildingPlacer;
+    [SerializeField] private BuildMenuUI buildMenuUI;
 
     void Update()
     {
-        // Press B to enter build mode
+        // Press B to toggle build menu + build mode
         if (UnityEngine.InputSystem.Keyboard.current.bKey.wasPressedThisFrame)
         {
-            buildingPlacer.EnterBuildMode(0);
+            if (buildMenuUI != null)
+            {
+                buildMenuUI.ToggleMenu();
+            }
+            else if (buildingPlacer != null)
+            {
+                buildingPlacer.ToggleBuildMode();
+            }
         }
     }
 }
